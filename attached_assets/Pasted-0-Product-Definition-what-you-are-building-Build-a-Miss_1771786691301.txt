@@ -1,0 +1,255 @@
+0) Product Definition (what you are building)
+
+Build a “Mission OS” with five primitives:
+
+Connectors (data integration stubs)
+
+Ontology (semantic model / graph of entities, relationships, events)
+
+Orchestration (workflow definitions, tasks, approvals, SLAs)
+
+Probes (runtime telemetry, health checks, evidence generation)
+
+Use-Case Factory (compose mission apps from templates)
+
+The MVP must demonstrate three sector use-cases out of the box:
+
+ITSM Mission: incident → triage → assignment → resolution → postmortem
+
+Cyber Compliance Mission: control mapping → evidence collection → audit pack
+
+FIU / FATF Mission: STR scoring + BO discrepancies + case/evidence + KPI dashboard
+Use only fake/demo data. Show a footer disclaimer: “Demo data only.”
+
+1) Strong constraints (must follow)
+
+RBAC: Admin, Operator, Analyst, Supervisor, Auditor, Executive Viewer.
+
+Every workflow transition must write an AuditLog record.
+
+Evidence items are immutable (append only).
+
+Probes generate telemetry events and can attach evidence automatically.
+
+The platform must be multi-tenant ready (Organization/Workspace), even if demo uses one tenant.
+
+Provide clean architecture: /app, /components, /lib, /server, /prisma, /config, /usecases.
+
+2) Data model (Prisma)
+
+Implement Prisma schema with these core entities:
+
+User, Role, Organization (tenant/workspace)
+
+Connector, DataSource, IngestionJob, IngestedRecord (generic)
+
+OntologyEntity, OntologyRelationship, OntologyEvent, OntologyType (entity types)
+
+Mission (use-case instance), MissionTemplate (use-case template)
+
+WorkflowDefinition, WorkflowInstance, WorkflowState, WorkflowTransition
+
+Task, Approval, SLA
+
+ProbeDefinition, ProbeRun, TelemetryEvent
+
+EvidenceItem (immutable), AuditLog, Notification
+Plus mission-specific tables for the 3 demo missions (minimal but real):
+
+ITSM: Ticket/Incident, ServiceCatalogItem
+
+Cyber Compliance: Control, ControlMapping, EvidenceRequest
+
+FIU: STR, StrQualityScore, BOEntity, BeneficialOwner, Discrepancy, CaseFile
+
+3) Ontology requirements (must implement)
+
+Ontology types: Person, Organization, Asset, System, Ticket, Control, STR, BOEntity, Case, Event.
+
+Store entities with flexible properties (JSON), but enforce a Type and key fields.
+
+Relationships: OWNS, ASSOCIATED_WITH, TRIGGERED_BY, LINKED_TO, IMPACTS.
+
+Provide an Ontology Explorer UI that shows:
+
+entity list + search + filters by type
+
+entity detail view
+
+relationship graph view (simple: adjacency list + “related entities” panel; graph rendering optional)
+
+Every mission object should also create/attach ontology entities/relationships.
+
+4) Orchestration requirements
+
+Implement workflow engine primitives:
+
+register workflow definitions (JSON) stored in DB
+
+instantiate workflow for a mission object
+
+state transitions with RBAC checks
+
+auto-task generation, SLAs, escalation flags
+
+Provide a Workflow Builder UI (MVP):
+
+choose template → edit states/transitions in a JSON editor
+
+validate schema
+
+publish to DB
+
+Provide a Mission Runner UI:
+
+start mission instance from template
+
+run transitions
+
+see timeline + tasks + approvals
+
+5) Probes / telemetry requirements (differentiator)
+
+A probe is a configured check that runs on schedule or on transition.
+
+For MVP implement these probes:
+
+“SLA breach detector” probe (flags overdue tasks)
+
+“Data freshness” probe (checks latest ingestion timestamp per data source)
+
+“Compliance evidence completeness” probe (checks required evidence items present)
+
+Each probe run writes TelemetryEvent + optional EvidenceItem (append-only).
+
+Provide a Probes Dashboard:
+
+list probes, last run, status, failures
+
+drill into a probe run detail page
+
+Add a “Run now” button for each probe.
+
+6) Use-Case Factory
+
+Implement a usecases/ folder with templates for ITSM, Cyber Compliance, FIU/FATF.
+
+A template defines:
+
+mission metadata (name, description, target roles)
+
+ontology mappings (what entities/relationships to create)
+
+workflow definition JSON
+
+probes to attach
+
+KPI definitions
+
+Provide a UI page /usecases to:
+
+browse templates
+
+create new mission instance
+
+see “installed” missions
+
+7) Required pages/routes
+
+/login
+
+/ Executive dashboard (KPIs, telemetry summary, active missions)
+
+/ontology explorer (list/detail)
+
+/missions list
+
+/missions/new create mission instance from template
+
+/missions/[id] mission detail: overview + workflow + tasks + evidence + timeline
+
+/workflows list definitions + builder
+
+/probes list + run detail
+
+/usecases templates page
+
+/kpis dashboard
+
+/admin users/roles/config
+
+8) KPIs (must implement)
+
+Provide a KPI engine that computes and stores snapshots for:
+
+Active missions by type
+
+Average time in state (per workflow)
+
+Overdue tasks count
+
+Probe pass/fail rate
+Mission-specific:
+
+ITSM: tickets opened/closed, mean time to resolve
+
+Cyber compliance: controls with complete evidence, audit pack readiness
+
+FIU: STR quality avg + % above threshold, BO discrepancy resolution rate
+Provide an on-demand “Compute KPIs” button.
+
+9) Exports
+
+From a mission detail page, allow exporting an Evidence Pack ZIP containing:
+
+mission summary JSON
+
+workflow timeline JSON
+
+tasks JSON
+
+evidence JSON (with hashes and timestamps)
+Implement server route that generates ZIP and returns it.
+
+10) Security and governance
+
+RBAC enforced on UI and server actions.
+
+Add middleware route protection.
+
+AuditLog for every create/update/transition/export.
+
+Notifications stored in DB (assignment, approval needed, probe failure, SLA breach).
+
+11) Deliverables
+
+Working repo with all pages above
+
+Prisma schema + migrations
+
+Seed script with realistic demo data (fake)
+
+Demo users/passwords in DEMO.md
+
+README with setup instructions + env vars
+
+Minimal tests: workflow transition RBAC, probe SLA detection, STR scoring stub test
+
+12) Execution instructions
+
+Do not ask clarifying questions. Make reasonable assumptions.
+If Postgres env var missing, use SQLite and still work.
+Keep UI clean and consistent with Tailwind.
+After implementation, verify key flows:
+
+Create mission from template
+
+Run workflow transitions
+
+See tasks and approvals
+
+Run probes and see telemetry
+
+Generate evidence pack ZIP
+
+Compute KPIs and show dashboard
